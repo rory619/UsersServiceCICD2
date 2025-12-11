@@ -28,10 +28,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.on_event("startup")
-def on_startup():
-    Base.metadata.create_all(bind=engine),
-
 def get_db(): 
     db = SessionLocal() 
     try: 
@@ -49,6 +45,10 @@ def commit_or_rollback(db: Session, error_msg: str):
 @app.get("/health") 
 def health(): 
     return {"status": "ok"} 
+
+@app.get("/api/greet/{name}")
+def greet(name: str):
+    return {"message": f"Hello, {name} from Service A!"}
  
 #Users
 @app.post("/api/users", response_model=UserRead, status_code=201, summary="Create new user") 
