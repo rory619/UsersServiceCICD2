@@ -2,31 +2,37 @@ import pytest
 from fastapi.testclient import TestClient 
 from sqlalchemy import create_engine, event 
 from sqlalchemy.orm import sessionmaker 
-from sqlalchemy.pool import StaticPool 
  
 import app.database as database
-import app.models as models
+import app.models as models 
 
 
  
 # In-memory SQLite, shared across threads 
-engine = create_engine("sqlite+pysqlite:///:memory:",connect_args={"check_same_thread": False},poolclass=StaticPool,)
+TEST_DB_URL = "sqlite+pysqlite:///./test_users.db"
+
+engine = create_engine(TEST_DB_URL,connect_args={"check_same_thread": False},)
  
 @event.listens_for(engine, "connect") 
 def _fk_on(dbapi_conn, _): 
     dbapi_conn.execute("PRAGMA foreign_keys=ON") 
+
+
+
+connection = engine.connect()
  
-TestingSessionLocal = sessionmaker(bind=engine, expire_on_commit=False,  autocommit=False, autoflush=False) 
+TestingSessionLocal = sessionmaker(bind=connection, expire_on_commit=False,  autocommit=False, autoflush=False) 
+
 database.engine = engine
 database.SessionLocal = TestingSessionLocal
 
-from app.main import app  # noqa: E402
+from app.main import app  
  
 @pytest.fixture(autouse=True) 
 def _schema(): 
-    models.Base.metadata.create_all(bind=engine) 
+    models.Base.metadata.create_all(bind=connection) 
     yield 
-    models.Base.metadata.drop_all(bind=engine) 
+    models.Base.metadata.drop_all(bind=connection) 
  
 @pytest.fixture 
 def client(): 
