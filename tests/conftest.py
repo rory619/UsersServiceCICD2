@@ -4,28 +4,29 @@ from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker 
 from sqlalchemy.pool import StaticPool 
  
-from app.main import app 
 import app.database as database
-from app.models import Base, UsersDB # noqa: F401
+import app.models as models
 
 
  
 # In-memory SQLite, shared across threads 
-engine = create_engine("sqlite+pysqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool) 
+engine = create_engine("sqlite+pysqlite:///:memory:",connect_args={"check_same_thread": False},poolclass=StaticPool,)
  
 @event.listens_for(engine, "connect") 
 def _fk_on(dbapi_conn, _): 
     dbapi_conn.execute("PRAGMA foreign_keys=ON") 
  
-TestingSessionLocal = sessionmaker(bind=engine, expire_on_commit=False) 
+TestingSessionLocal = sessionmaker(bind=engine, expire_on_commit=False,  autocommit=False, autoflush=False) 
 database.engine = engine
 database.SessionLocal = TestingSessionLocal
+
+from app.main import app  # noqa: E402
  
 @pytest.fixture(autouse=True) 
 def _schema(): 
-    Base.metadata.create_all(bind=engine) 
+    models.Base.metadata.create_all(bind=engine) 
     yield 
-    Base.metadata.drop_all(bind=engine) 
+    models.Base.metadata.drop_all(bind=engine) 
  
 @pytest.fixture 
 def client(): 
