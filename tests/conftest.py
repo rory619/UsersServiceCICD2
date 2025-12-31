@@ -5,20 +5,21 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool 
  
 from app.main import app 
-from app.database import get_db
-from app.models import Base, UsersDB
+import app.database as database
+from app.models import Base, UsersDB # noqa: F401
 
 
  
 # In-memory SQLite, shared across threads 
-engine = create_engine("sqlite+pysqlite://", connect_args={"check_same_thread": False}, 
-poolclass=StaticPool) 
+engine = create_engine("sqlite+pysqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool) 
  
 @event.listens_for(engine, "connect") 
 def _fk_on(dbapi_conn, _): 
     dbapi_conn.execute("PRAGMA foreign_keys=ON") 
  
 TestingSessionLocal = sessionmaker(bind=engine, expire_on_commit=False) 
+database.engine = engine
+database.SessionLocal = TestingSessionLocal
  
 @pytest.fixture(autouse=True) 
 def _schema(): 
@@ -34,7 +35,7 @@ def client():
             yield db 
         finally: 
             db.close() 
-    app.dependency_overrides[get_db] = override_get_db 
+    app.dependency_overrides[database.get_db] = override_get_db 
     with TestClient(app) as c: 
         yield c 
     app.dependency_overrides.clear()
