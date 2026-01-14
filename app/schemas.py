@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Optional
 from annotated_types import Ge, Le
 from pydantic import BaseModel, EmailStr, ConfigDict, StringConstraints
 
@@ -21,5 +21,11 @@ class UserRead(BaseModel):
     email: EmailStr
     age: AgeInt
     student_id: StudentIdStr
+
+class UserUpdate(BaseModel):
+    name: Optional[NameStr] = None
+    email: Optional[EmailStr] = None
+    age: Optional[AgeInt] = None
+    student_id: Optional[StudentIdStr] = None
 
     model_config = ConfigDict(from_attributes=True)

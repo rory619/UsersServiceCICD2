@@ -10,7 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from app.database import SessionLocal
 from app.models import UsersDB
-from app.schemas import UserCreate, UserRead
+from app.schemas import UserCreate, UserRead, UserUpdate
 
 
 # Replacing @app.on_event("startup")
@@ -89,30 +89,19 @@ def get_user(
     return user
 
 
-@app.put(
-    "/api/users/{user_id}",
-    response_model=UserRead,
-    summary="Update an existing user",
-)
-def update_user(
-    user_id: int,
-    payload: UserCreate,
-    db: Session = Depends(get_db),
-):
+@app.put("/api/users/{user_id}", response_model=UserRead, summary="Update an existing user")
+def update_user(user_id: int, payload: UserUpdate, db: Session = Depends(get_db)):
     user = db.get(UsersDB, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    user.user_id = payload.user_id
-    user.name = payload.name
-    user.email = payload.email
-    user.student_id = payload.student_id
-    user.age = payload.age
+    data = payload.model_dump(exclude_unset=True)
+    for k, v in data.items():
+        setattr(user, k, v)
 
     commit_or_rollback(db, "User update failed")
     db.refresh(user)
     return user
-
 
 @app.delete("/api/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_user(
